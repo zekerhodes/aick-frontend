@@ -1,0 +1,17 @@
+/* AIC Kapsowar Hospital Asset Management */
+.App {
+  min-height: 100vh;
+}
+
+/* Make page-break friendly print for barcode sheets */
+@media print {
+  body { background: white !important; }
+  aside, header, button { display: none !important; }
+  main { overflow: visible !important; }
+}
+
+/* Smooth scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
