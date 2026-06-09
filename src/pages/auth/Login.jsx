@@ -89,9 +89,6 @@ export const Login = () => {
           <div className="mt-6 text-center text-sm text-slate-500">
             Don't have an account? <Link to="/signup" className="text-[#D9501E] font-medium hover:underline">Request access</Link>
           </div>
-          <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-md text-[11px] text-amber-800">
-            <strong>Demo mode:</strong> Use any email + password. Real JWT auth activates with the backend.
-          </div>
         </Card>
       </div>
     </div>

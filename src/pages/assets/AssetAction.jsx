@@ -6,9 +6,10 @@ import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ArrowLeft, ScanLine, Check } from 'lucide-react';
+import { ArrowLeft, ScanLine, Check, Camera } from 'lucide-react';
 import { api } from '../../lib/api';
 import { toast } from '../../hooks/use-toast';
+import { BarcodeScanner } from '../../components/scanner/BarcodeScanner';
 
 const CONFIG = {
   'check-out': { title: 'Check Out Asset', desc: 'Issue an asset to a person or department', cta: 'Check Out', endpoint: 'check-out', fields: ['person', 'returnDate', 'notes'] },
@@ -31,6 +32,7 @@ export const AssetAction = ({ kind }) => {
   const [assetTag, setAssetTag] = useState('');
   const [form, setForm] = useState({ person: '', location_id: '', date: new Date().toISOString().slice(0, 10), return_date: '', reason: '', cost: '', notes: '', condition: 'Good', maintType: 'Preventive', technician: '' });
   const [saving, setSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -91,8 +93,11 @@ export const AssetAction = ({ kind }) => {
                 <ScanLine size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <Input value={assetTag} onChange={(e) => { setAssetTag(e.target.value); const m = assets.find((a) => a.tag === e.target.value); if (m) setAssetId(m.id); }} placeholder="Scan tag or pick from list" className="pl-9 font-mono" />
               </div>
+              <Button type="button" variant="outline" onClick={() => setScannerOpen(true)} title="Scan with camera">
+                <Camera size={14} className="mr-1.5" /> Scan
+              </Button>
               <Select value={assetId} onValueChange={(v) => { setAssetId(v); const a = assets.find((x) => x.id === v); if (a) setAssetTag(a.tag); }}>
-                <SelectTrigger className="w-64"><SelectValue placeholder="or pick asset" /></SelectTrigger>
+                <SelectTrigger className="w-56"><SelectValue placeholder="or pick asset" /></SelectTrigger>
                 <SelectContent>{assets.map((a) => <SelectItem key={a.id} value={a.id}>{a.tag} — {a.name.slice(0, 35)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -190,6 +195,13 @@ export const AssetAction = ({ kind }) => {
           </div>
         </Card>
       </form>
+
+      <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={(code) => {
+        setAssetTag(code);
+        const m = assets.find((a) => a.tag === code);
+        if (m) { setAssetId(m.id); toast({ title: 'Asset found', description: m.name }); }
+        else { toast({ title: 'Scanned', description: code }); }
+      }} />
     </div>
   );
 };

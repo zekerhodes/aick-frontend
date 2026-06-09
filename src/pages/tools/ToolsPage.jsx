@@ -9,6 +9,7 @@ import { Upload, Download, FolderOpen, Image as ImageIcon, ScanLine, Barcode as 
 import Barcode from 'react-barcode';
 import { api } from '../../lib/api';
 import { toast } from '../../hooks/use-toast';
+import { BarcodeScanner } from '../../components/scanner/BarcodeScanner';
 
 export const ToolsPage = () => {
   const { kind } = useParams();
@@ -111,33 +112,86 @@ const BarcodeTool = () => {
   );
 };
 
-const ImportTool = () => (
+const ImportTool = () => {
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const downloadTemplate = () => {
+    const headers = 'name,tag,category,location,department,status,condition,assigned_to,serial_number,purchase_date,purchase_cost,vendor,funding_source,warranty_expiry,notes';
+    const sample = 'Sample Equipment,AICK-MED-99999,Medical Equipment,Main Hospital Building,Administration,In Service,Good,Dr. Joseph Kiptoo,SN-12345,2024-01-15,250000,Crown Healthcare,Hospital Operations Budget,2027-01-15,Demo asset';
+    const blob = new Blob([headers + '\n' + sample], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'aick_assets_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const upload = async () => {
+    if (!file) { toast({ title: 'Pick a CSV first', variant: 'destructive' }); return; }
+    setUploading(true);
+    setResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await api.post('/tools/import-assets', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setResult(data);
+      toast({ title: 'Import complete', description: `${data.inserted} assets added, ${data.skipped} skipped.` });
+    } catch (err) {
+      toast({ title: 'Import failed', description: err?.response?.data?.detail || 'Could not import CSV', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
   <div className="space-y-6 max-w-3xl">
     <div>
       <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><Upload size={22} className="text-[#D9501E]" /> Import Assets</h1>
-      <p className="text-sm text-slate-500 mt-1">Bulk upload assets from CSV / Excel — handles thousands of records</p>
+      <p className="text-sm text-slate-500 mt-1">Bulk upload assets from CSV — handles thousands of records</p>
     </div>
     <Card className="p-6 border-slate-200">
-      <button className="w-full border-2 border-dashed border-slate-300 rounded-md p-12 flex flex-col items-center gap-3 text-slate-500 hover:border-[#D9501E] hover:text-[#D9501E] transition-colors">
+      <label className="w-full border-2 border-dashed border-slate-300 rounded-md p-12 flex flex-col items-center gap-3 text-slate-500 hover:border-[#D9501E] hover:text-[#D9501E] transition-colors cursor-pointer">
+        <input type="file" accept=".csv" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
         <Upload size={32} />
-        <div className="font-medium">Drag & drop your CSV file here</div>
-        <div className="text-xs">or click to browse — Max 50MB</div>
-      </button>
+        <div className="font-medium">{file ? file.name : 'Click to select a CSV file'}</div>
+        <div className="text-xs">{file ? `${(file.size / 1024).toFixed(1)} KB` : 'CSV only — max 50MB'}</div>
+      </label>
       <div className="mt-6 grid grid-cols-2 gap-3">
-        <Button variant="outline" className="w-full" onClick={() => toast({ title: 'Template downloaded', description: 'assets_template.csv' })}><Download size={14} className="mr-1.5" /> Download Template</Button>
-        <Button className="w-full bg-[#D9501E] hover:bg-[#B8400F] text-white" onClick={() => toast({ title: 'Demo mode', description: 'Real import activates with backend' })}>Start Import</Button>
+        <Button variant="outline" className="w-full" onClick={downloadTemplate}><Download size={14} className="mr-1.5" /> Download Template</Button>
+        <Button className="w-full bg-[#D9501E] hover:bg-[#B8400F] text-white" disabled={!file || uploading} onClick={upload}>
+          {uploading ? 'Uploading...' : 'Start Import'}
+        </Button>
       </div>
+      {result && (
+        <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-md text-sm">
+          <div className="font-semibold text-slate-900 mb-2">Import Result</div>
+          <div className="text-emerald-700">Inserted: {result.inserted}</div>
+          <div className="text-amber-700">Skipped: {result.skipped}</div>
+          {result.errors?.length > 0 && (
+            <div className="mt-2">
+              <div className="text-xs font-semibold text-slate-600">Errors (first 50):</div>
+              <ul className="text-xs text-slate-500 list-disc list-inside mt-1 max-h-32 overflow-y-auto">
+                {result.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
     <Card className="p-6 border-slate-200">
       <h3 className="font-semibold text-slate-900 mb-3">Required Columns</h3>
       <div className="grid grid-cols-2 gap-2 text-xs">
-        {['name *', 'tag *', 'category *', 'location *', 'department', 'serial_number', 'purchase_date', 'purchase_cost', 'vendor', 'warranty_expiry', 'assigned_to', 'condition', 'notes'].map((c) => (
+        {['name *', 'tag *', 'category', 'location', 'department', 'serial_number', 'purchase_date', 'purchase_cost', 'vendor', 'warranty_expiry', 'assigned_to', 'condition', 'status', 'funding_source', 'notes'].map((c) => (
           <div key={c} className="px-3 py-1.5 bg-slate-50 rounded font-mono">{c}</div>
         ))}
       </div>
+      <p className="text-xs text-slate-500 mt-3">Categories/locations/vendors/funding sources are matched by name (case-insensitive). Create them under <strong>Advanced</strong> first if they don't exist.</p>
     </Card>
   </div>
-);
+  );
+};
 
 const ExportTool = () => (
   <div className="space-y-6 max-w-3xl">
@@ -203,38 +257,77 @@ const GalleryTool = ({ kind }) => (
 
 const AuditTool = () => {
   const [assetCount, setAssetCount] = useState(0);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanned, setScanned] = useState([]);
   useEffect(() => {
     api.get('/assets?per_page=1').then(({ data }) => setAssetCount(data.total || 0)).catch(() => {});
   }, []);
+
+  const handleScan = async (code) => {
+    if (scanned.some((s) => s.tag === code)) {
+      toast({ title: 'Already scanned', description: code });
+      return;
+    }
+    try {
+      const { data } = await api.get('/assets', { params: { search: code, per_page: 5 } });
+      const match = (data.items || []).find((a) => a.tag === code);
+      if (match) {
+        setScanned((s) => [{ tag: code, name: match.name, found: true }, ...s]);
+        toast({ title: 'Match found', description: match.name });
+      } else {
+        setScanned((s) => [{ tag: code, name: 'Unknown', found: false }, ...s]);
+        toast({ title: 'Unknown tag', description: code, variant: 'destructive' });
+      }
+    } catch {
+      setScanned((s) => [{ tag: code, name: '?', found: false }, ...s]);
+    }
+  };
+
   return (
   <div className="space-y-6">
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><ScanLine size={22} className="text-[#D9501E]" /> Physical Audit</h1>
-      <p className="text-sm text-slate-500 mt-1">Scan barcodes to reconcile physical assets against records</p>
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><ScanLine size={22} className="text-[#D9501E]" /> Physical Audit</h1>
+        <p className="text-sm text-slate-500 mt-1">Scan barcodes to reconcile physical assets against records</p>
+      </div>
+      <Button onClick={() => setScannerOpen(true)} className="bg-[#D9501E] hover:bg-[#B8400F] text-white">
+        <ScanLine size={14} className="mr-1.5" /> Open Camera Scanner
+      </Button>
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <Card className="p-6 border-slate-200 lg:col-span-2">
-        <h3 className="font-semibold text-slate-900 mb-4">Scan Asset Barcode</h3>
-        <div className="relative">
-          <ScanLine size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#D9501E]" />
-          <Input placeholder="Focus here and scan with USB barcode reader..." className="pl-10 h-12 font-mono" autoFocus />
-        </div>
-        <div className="mt-6 bg-slate-50 rounded-md p-8 text-center text-slate-400 border-2 border-dashed border-slate-200">
-          <ScanLine size={32} className="mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Scanned assets will appear here</p>
-        </div>
+        <h3 className="font-semibold text-slate-900 mb-4">Scanned Items ({scanned.length})</h3>
+        {scanned.length === 0 ? (
+          <div className="bg-slate-50 rounded-md p-8 text-center text-slate-400 border-2 border-dashed border-slate-200">
+            <ScanLine size={32} className="mx-auto mb-2 opacity-40" />
+            <p className="text-sm">Click "Open Camera Scanner" to start an audit</p>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {scanned.map((s, i) => (
+              <div key={i} className={`flex items-center justify-between p-3 rounded border ${s.found ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                <div>
+                  <div className="font-mono text-xs text-slate-600">{s.tag}</div>
+                  <div className="text-sm font-medium text-slate-900">{s.name}</div>
+                </div>
+                <span className={`text-xs font-semibold ${s.found ? 'text-emerald-700' : 'text-red-700'}`}>{s.found ? 'MATCH' : 'NOT FOUND'}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
       <Card className="p-6 border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-3">Audit Session</h3>
         <div className="space-y-3 text-sm">
-          <div className="flex justify-between"><span className="text-slate-500">Started</span><span>--:--</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Scanned</span><span className="font-semibold">0</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Expected</span><span className="font-semibold">{assetCount}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Missing</span><span className="font-semibold text-red-600">0</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Scanned</span><span className="font-semibold">{scanned.length}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Matched</span><span className="font-semibold text-emerald-600">{scanned.filter((s) => s.found).length}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Unknown</span><span className="font-semibold text-red-600">{scanned.filter((s) => !s.found).length}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Total in system</span><span className="font-semibold">{assetCount}</span></div>
         </div>
-        <Button className="w-full mt-4 bg-[#D9501E] hover:bg-[#B8400F] text-white">Start Audit Session</Button>
+        <Button variant="outline" className="w-full mt-4" onClick={() => setScanned([])}>Clear Session</Button>
       </Card>
     </div>
+    <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleScan} />
   </div>
   );
 };

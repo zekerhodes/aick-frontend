@@ -8,7 +8,7 @@ import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { Dashboard } from './pages/dashboard/Dashboard';
 import { AssetsList } from './pages/assets/AssetsList';
-import { AddAsset } from './pages/assets/AddAsset';
+import { AddAsset, EditAsset } from './pages/assets/AddAsset';
 import { AssetDetail } from './pages/assets/AssetDetail';
 import { AssetAction } from './pages/assets/AssetAction';
 import { ListsPage } from './pages/lists/ListsPage';
@@ -46,6 +46,7 @@ function App() {
             <Route path="assets/move" element={<AssetAction kind="move" />} />
             <Route path="assets/reserve" element={<AssetAction kind="reserve" />} />
             <Route path="assets/:id" element={<AssetDetail />} />
+            <Route path="assets/:id/edit" element={<EditAsset />} />
 
             {/* Lists */}
             <Route path="lists/:kind" element={<ListsPage />} />

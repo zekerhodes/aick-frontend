@@ -52,7 +52,7 @@ export const AssetDetail = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer size={14} className="mr-1.5" /> Print</Button>
-          <Button variant="outline" size="sm"><Edit size={14} className="mr-1.5" /> Edit</Button>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/app/assets/${id}/edit`)}><Edit size={14} className="mr-1.5" /> Edit</Button>
           <Button variant="outline" size="sm" className="text-red-600" onClick={onDelete}><Trash2 size={14} className="mr-1.5" /> Delete</Button>
         </div>
       </div>
