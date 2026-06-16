@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Camera, X, ScanLine, CheckCircle } from 'lucide-react';
+import { Camera, X, ScanLine, CheckCircle, RotateCcw } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 export const BarcodeScanner = ({ open, onClose, onScan }) => {
@@ -10,70 +10,82 @@ export const BarcodeScanner = ({ open, onClose, onScan }) => {
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [lastCode, setLastCode] = useState('');
+  const [cameras, setCameras] = useState([]);
+  const [activeCameraId, setActiveCameraId] = useState(null);
+
+  const startCamera = async (cameraId) => {
+    setStatus('starting');
+    setError('');
+    setLastCode('');
+
+    // Stop any existing scanner
+    if (scannerRef.current) {
+      try { await scannerRef.current.stop(); await scannerRef.current.clear(); } catch {}
+      scannerRef.current = null;
+    }
+
+    try {
+      const containerEl = document.getElementById(containerId);
+      if (!containerEl) throw new Error('Scanner not ready');
+
+      const html5Qr = new Html5Qrcode(containerId, { verbose: false });
+      scannerRef.current = html5Qr;
+
+      await html5Qr.start(
+        cameraId,
+        {
+          fps: 15,
+          qrbox: (vw, vh) => {
+            const min = Math.min(vw, vh);
+            const size = Math.floor(min * 0.75);
+            return { width: size, height: size };
+          },
+          aspectRatio: 1.0,
+          disableFlip: false,
+        },
+        (decodedText) => {
+          setLastCode(decodedText);
+          setTimeout(async () => {
+            try { await html5Qr.stop(); await html5Qr.clear(); } catch {}
+            scannerRef.current = null;
+            onScan(decodedText);
+            onClose();
+          }, 300);
+        },
+        () => {}
+      );
+      setStatus('scanning');
+      setActiveCameraId(cameraId);
+    } catch (e) {
+      console.error('Scanner error:', e);
+      setError(e?.message || 'Could not start camera.');
+      setStatus('error');
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
-    let stopped = false;
 
-    // Wait for the DOM to render the scanner container before initializing
     const timer = setTimeout(async () => {
-      setStatus('starting');
-      setError('');
       try {
-        const containerEl = document.getElementById(containerId);
-        if (!containerEl) {
-          throw new Error('Scanner container not ready. Try closing and reopening.');
+        const list = await Html5Qrcode.getCameras();
+        if (!list || list.length === 0) {
+          setError('No camera detected. Grant permission and reload.');
+          setStatus('error');
+          return;
         }
-
-        // Find available cameras (works on laptops + phones)
-        let cameras = [];
-        try {
-          cameras = await Html5Qrcode.getCameras();
-        } catch (e) {
-          throw new Error('Camera access denied. Allow camera permission in your browser and reload.');
-        }
-        if (!cameras || cameras.length === 0) {
-          throw new Error('No camera detected. Connect a webcam or use a device with a camera.');
-        }
-
-        // Prefer rear camera on phones; otherwise use the first available
-        const rear = cameras.find((c) => /back|rear|environment/i.test(c.label || ''));
-        const cameraId = rear ? rear.id : cameras[0].id;
-
-        const html5Qr = new Html5Qrcode(containerId, { verbose: false });
-        scannerRef.current = html5Qr;
-
-        await html5Qr.start(
-          cameraId,
-          {
-            fps: 10,
-            qrbox: (vw, vh) => {
-              const min = Math.min(vw, vh);
-              return { width: Math.floor(min * 0.7), height: Math.floor(min * 0.35) };
-            },
-            aspectRatio: 1.6,
-          },
-          (decodedText) => {
-            if (stopped) return;
-            stopped = true;
-            setLastCode(decodedText);
-            setTimeout(() => {
-              onScan(decodedText);
-              handleClose();
-            }, 300);
-          },
-          () => {}
-        );
-        setStatus('scanning');
+        setCameras(list);
+        // Prefer rear camera label on phones; else first available
+        const rear = list.find((c) => /back|rear|environment/i.test(c.label || ''));
+        const chosen = rear ? rear.id : list[0].id;
+        await startCamera(chosen);
       } catch (e) {
-        console.error('Scanner error:', e);
-        setError(e?.message || 'Could not start camera.');
+        setError(e?.message || 'Camera permission denied.');
         setStatus('error');
       }
     }, 300);
 
     return () => {
-      stopped = true;
       clearTimeout(timer);
       const s = scannerRef.current;
       if (s) {
@@ -93,7 +105,16 @@ export const BarcodeScanner = ({ open, onClose, onScan }) => {
     setStatus('idle');
     setError('');
     setLastCode('');
+    setCameras([]);
+    setActiveCameraId(null);
     onClose();
+  };
+
+  const switchCamera = async () => {
+    if (cameras.length < 2) return;
+    const idx = cameras.findIndex((c) => c.id === activeCameraId);
+    const next = cameras[(idx + 1) % cameras.length];
+    await startCamera(next.id);
   };
 
   return (
@@ -102,14 +123,14 @@ export const BarcodeScanner = ({ open, onClose, onScan }) => {
         <DialogHeader className="px-5 py-3 border-b border-slate-200">
           <DialogTitle className="flex items-center gap-2">
             <Camera size={18} className="text-[#D9501E]" />
-            Scan Barcode
+            Scan Barcode or QR Code
           </DialogTitle>
           <DialogDescription id="scanner-desc" className="sr-only">
-            Camera-based barcode scanner. Point your camera at a barcode.
+            Camera-based scanner for barcodes and QR codes.
           </DialogDescription>
         </DialogHeader>
-        <div className="relative bg-black" style={{ minHeight: 360 }}>
-          <div id={containerId} style={{ width: '100%', minHeight: 360 }} />
+        <div className="relative bg-black" style={{ minHeight: 400 }}>
+          <div id={containerId} style={{ width: '100%', minHeight: 400 }} />
           {status === 'starting' && (
             <div className="absolute inset-0 flex items-center justify-center text-white text-sm pointer-events-none">
               <ScanLine className="mr-2 animate-pulse" /> Starting camera...
@@ -128,8 +149,13 @@ export const BarcodeScanner = ({ open, onClose, onScan }) => {
             </div>
           )}
         </div>
-        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-          <span>Point the camera at a barcode. Works on phones & laptops.</span>
+        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 gap-2">
+          <span className="flex-1">Hold code steady, fill the square, ensure good lighting.</span>
+          {cameras.length > 1 && (
+            <Button variant="outline" size="sm" onClick={switchCamera} title="Switch camera">
+              <RotateCcw size={14} className="mr-1" /> Switch
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleClose}>Cancel</Button>
         </div>
       </DialogContent>
