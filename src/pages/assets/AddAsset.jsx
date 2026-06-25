@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, Save, Camera, Barcode as BarcodeIcon } from 'lucide-react';
 import Barcode from 'react-barcode';
 import { toast } from '../../hooks/use-toast';
-import { api } from '../../lib/api';
+import { api, formatApiError } from '../../lib/api';
 import { BarcodeScanner } from '../../components/scanner/BarcodeScanner';
 
 /**
@@ -65,6 +65,7 @@ export const AssetForm = () => {
     setSaving(true);
     try {
       const payload = { ...form, purchase_cost: parseFloat(form.purchase_cost) || 0 };
+      ['category', 'location', 'vendor', 'funding_source'].forEach((k) => delete payload[k]);
       Object.keys(payload).forEach((k) => { if (payload[k] === '' || payload[k] === null) delete payload[k]; });
       if (isEdit) {
         await api.put(`/assets/${id}`, payload);
@@ -75,7 +76,7 @@ export const AssetForm = () => {
       }
       navigate('/app/assets');
     } catch (err) {
-      toast({ title: 'Error', description: err?.response?.data?.detail || 'Failed to save asset', variant: 'destructive' });
+      toast({ title: 'Error', description: formatApiError(err, 'Failed to save asset'), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
