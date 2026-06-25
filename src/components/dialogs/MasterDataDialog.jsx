@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Save } from 'lucide-react';
-import { api } from '../../lib/api';
+import { api, formatApiError } from '../../lib/api';
 import { toast } from '../../hooks/use-toast';
 
 /**
@@ -45,7 +45,7 @@ export const MasterDataDialog = ({ open, onClose, onSaved, resource, title, fiel
       onSaved?.();
       onClose();
     } catch (err) {
-      toast({ title: 'Error', description: err?.response?.data?.detail || 'Save failed', variant: 'destructive' });
+      toast({ title: 'Save failed', description: formatApiError(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
