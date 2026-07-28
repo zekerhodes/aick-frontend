@@ -8,6 +8,7 @@ import { ArrowLeft, Edit, Trash2, Printer, Barcode as BarcodeIcon, Tag, MapPin, 
 import Barcode from 'react-barcode';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from '../../hooks/use-toast';
+import { AssetSOP } from './AssetSOP';
 
 export const AssetDetail = () => {
   const { id } = useParams();
@@ -79,10 +80,14 @@ export const AssetDetail = () => {
             <Tabs defaultValue="info">
               <TabsList>
                 <TabsTrigger value="info">Details</TabsTrigger>
+                <TabsTrigger value="sop" data-testid="tab-sop">SOP</TabsTrigger>
                 <TabsTrigger value="docs">Documents</TabsTrigger>
               </TabsList>
               <TabsContent value="info" className="pt-4 text-sm text-slate-600">
                 {asset.notes || 'No additional notes for this asset.'}
+              </TabsContent>
+              <TabsContent value="sop">
+                <AssetSOP asset={asset} onUpdated={setAsset} />
               </TabsContent>
               <TabsContent value="docs" className="pt-4">
                 <p className="text-sm text-slate-400 text-center py-8">No documents uploaded.</p>
@@ -121,6 +126,6 @@ const Field = ({ icon: Icon, label, value }) => (
     <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold flex items-center gap-1.5">
       <Icon size={12} /> {label}
     </div>
-    <div className="mt-1 text-slate-900 font-medium">{value || '—'}</div>
+    <div className="mt-1 text-slate-900 font-medium">{value || '-'}</div>
   </div>
 );
