@@ -28,6 +28,7 @@ const BarcodeTool = () => {
   const [selected, setSelected] = useState([]);
   const [size, setSize] = useState('medium');
   const [format, setFormat] = useState('CODE128');
+  const [includeSop, setIncludeSop] = useState(false);
 
   useEffect(() => {
     api.get('/assets?per_page=500').then(({ data }) => {
@@ -78,10 +79,14 @@ const BarcodeTool = () => {
                 </SelectContent>
               </Select>
             </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer" data-testid="toggle-print-sop">
+              <input type="checkbox" checked={includeSop} onChange={(e) => setIncludeSop(e.target.checked)} className="accent-[#D9501E]" />
+              Print SOP snippet on label
+            </label>
             <div className="pt-4 border-t border-slate-100">
               <h4 className="text-sm font-semibold text-slate-900 mb-3">Select Assets ({selected.length})</h4>
               <div className="space-y-1 max-h-72 overflow-y-auto">
-                {ASSETS.map((a) => (
+                {assets.map((a) => (
                   <label key={a.id} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-slate-50 cursor-pointer text-sm">
                     <input type="checkbox" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} className="accent-[#D9501E]" />
                     <span className="font-mono text-xs text-slate-600">{a.tag}</span>
@@ -93,7 +98,7 @@ const BarcodeTool = () => {
           </div>
         </Card>
         <Card className="p-5 border-slate-200 lg:col-span-2">
-          <h3 className="font-semibold text-slate-900 mb-4">Preview · Print Sheet</h3>
+          <h3 className="font-semibold text-slate-900 mb-4">Preview - Print Sheet</h3>
           <div className="bg-slate-50 p-6 rounded-md border border-slate-200 min-h-[500px]">
             <div className="bg-white p-6 shadow-sm grid grid-cols-2 gap-4">
               {items.map((a) => (
@@ -101,6 +106,19 @@ const BarcodeTool = () => {
                   <div className="text-[10px] font-bold text-slate-900 mb-1">AIC Kapsowar Hospital</div>
                   <Barcode value={a.tag} format={format} width={widths[size]} height={heights[size]} fontSize={11} background="#ffffff" />
                   <div className="text-[10px] text-slate-600 mt-1 text-center">{a.name.slice(0, 35)}{a.name.length > 35 ? '...' : ''}</div>
+                  {includeSop && (a.sop_text || a.sop_url) && (
+                    <div className="mt-1.5 pt-1.5 border-t border-slate-200 w-full text-left">
+                      <div className="text-[8px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">SOP</div>
+                      {a.sop_text && (
+                        <div className="text-[8px] text-slate-600 leading-tight whitespace-pre-wrap">
+                          {a.sop_text.slice(0, 180)}{a.sop_text.length > 180 ? '...' : ''}
+                        </div>
+                      )}
+                      {a.sop_url && (
+                        <div className="text-[8px] text-slate-500 mt-0.5 truncate">Ref: {a.sop_url}</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               {items.length === 0 && <p className="col-span-2 text-center text-slate-400 py-10">Select assets to preview labels</p>}
@@ -149,14 +167,14 @@ const ImportTool = () => {
   <div className="space-y-6 max-w-3xl">
     <div>
       <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><Upload size={22} className="text-[#D9501E]" /> Import Assets</h1>
-      <p className="text-sm text-slate-500 mt-1">Bulk upload assets from CSV — handles thousands of records</p>
+      <p className="text-sm text-slate-500 mt-1">Bulk upload assets from CSV - handles thousands of records</p>
     </div>
     <Card className="p-6 border-slate-200">
       <label className="w-full border-2 border-dashed border-slate-300 rounded-md p-12 flex flex-col items-center gap-3 text-slate-500 hover:border-[#D9501E] hover:text-[#D9501E] transition-colors cursor-pointer">
         <input type="file" accept=".csv" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
         <Upload size={32} />
         <div className="font-medium">{file ? file.name : 'Click to select a CSV file'}</div>
-        <div className="text-xs">{file ? `${(file.size / 1024).toFixed(1)} KB` : 'CSV only — max 50MB'}</div>
+        <div className="text-xs">{file ? `${(file.size / 1024).toFixed(1)} KB` : 'CSV only - max 50MB'}</div>
       </label>
       <div className="mt-6 grid grid-cols-2 gap-3">
         <Button variant="outline" className="w-full" onClick={downloadTemplate}><Download size={14} className="mr-1.5" /> Download Template</Button>
@@ -187,7 +205,7 @@ const ImportTool = () => {
           <div key={c} className="px-3 py-1.5 bg-slate-50 rounded font-mono">{c}</div>
         ))}
       </div>
-      <p className="text-xs text-slate-500 mt-3">Categories/locations/vendors/funding sources are matched by name (case-insensitive). Create them under <strong>Advanced</strong> first if they don't exist.</p>
+      <p className="text-xs text-slate-500 mt-3">Categories/locations/vendors/funding sources are matched by name (case-insensitive). Create them under Advanced first if they don't exist.</p>
     </Card>
   </div>
   );
@@ -250,7 +268,7 @@ const GalleryTool = ({ kind }) => (
           </div>
         ))}
       </div>
-      <p className="text-xs text-slate-400 text-center mt-6">Sample placeholders — connect backend to load real {kind}.</p>
+      <p className="text-xs text-slate-400 text-center mt-6">Sample placeholders - connect backend to load real {kind}.</p>
     </Card>
   </div>
 );
