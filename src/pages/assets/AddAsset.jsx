@@ -12,9 +12,6 @@ import { toast } from '../../hooks/use-toast';
 import { api, formatApiError } from '../../lib/api';
 import { BarcodeScanner } from '../../components/scanner/BarcodeScanner';
 
-/**
- * Used for BOTH Add and Edit. If :id is in URL, fetches and edits; otherwise creates new.
- */
 export const AssetForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -25,6 +22,7 @@ export const AssetForm = () => {
     category_id: '', location_id: '', department: '', vendor_id: '', funding_id: '',
     assigned_to: '', status: 'In Service', condition: 'Excellent', serial_number: '',
     purchase_date: new Date().toISOString().slice(0, 10), purchase_cost: '', warranty_expiry: '', notes: '',
+    sop_text: '', sop_url: '',
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
@@ -159,7 +157,7 @@ export const AssetForm = () => {
                 <Label>Assigned To</Label>
                 <Select value={form.assigned_to} onValueChange={set('assigned_to')}>
                   <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select person" /></SelectTrigger>
-                  <SelectContent>{lookups.persons.map((p) => <SelectItem key={p.id} value={p.name}>{p.name} — {p.role}</SelectItem>)}</SelectContent>
+                  <SelectContent>{lookups.persons.map((p) => <SelectItem key={p.id} value={p.name}>{p.name} - {p.role}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -209,6 +207,34 @@ export const AssetForm = () => {
               <Textarea value={form.notes || ''} onChange={set('notes')} className="mt-1.5" rows={3} placeholder="Any additional information..." />
             </div>
           </Card>
+
+          <Card className="p-6 border-slate-200">
+            <h3 className="font-semibold text-slate-900 mb-1">Standard Operating Procedure (SOP)</h3>
+            <p className="text-xs text-slate-500 mb-4">Add usage steps or link an external SOP. File attachments can be added from the asset detail page after saving.</p>
+            <div className="space-y-4">
+              <div>
+                <Label>SOP Text</Label>
+                <Textarea
+                  value={form.sop_text || ''}
+                  onChange={set('sop_text')}
+                  rows={5}
+                  placeholder={'e.g.\n1. Wear PPE before use.\n2. Verify calibration monthly.'}
+                  className="mt-1.5 font-mono text-[13px]"
+                  data-testid="add-sop-text"
+                />
+              </div>
+              <div>
+                <Label>External SOP link</Label>
+                <Input
+                  value={form.sop_url || ''}
+                  onChange={set('sop_url')}
+                  placeholder="https://drive.google.com/... or intranet URL"
+                  className="mt-1.5"
+                  data-testid="add-sop-url"
+                />
+              </div>
+            </div>
+          </Card>
         </div>
 
         <div className="space-y-6">
@@ -235,6 +261,5 @@ export const AssetForm = () => {
   );
 };
 
-// Backwards-compatible exports
 export const AddAsset = AssetForm;
 export const EditAsset = AssetForm;
