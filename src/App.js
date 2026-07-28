@@ -16,10 +16,11 @@ import { ReportsPage } from './pages/reports/ReportsPage';
 import { ToolsPage } from './pages/tools/ToolsPage';
 import { AdvancedPage } from './pages/advanced/AdvancedPage';
 import { ComingSoonModule } from './pages/future/ComingSoonModule';
+import { MaintenanceCalendar } from './pages/maintenance/MaintenanceCalendar';
 
 function App() {
   useEffect(() => {
-    document.title = 'AIC Kapsowar Hospital · Asset Management';
+    document.title = 'AIC Kapsowar Hospital - Asset Management';
   }, []);
 
   return (
@@ -34,7 +35,6 @@ function App() {
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
 
-            {/* Assets */}
             <Route path="assets" element={<AssetsList />} />
             <Route path="assets/new" element={<AddAsset />} />
             <Route path="assets/check-out" element={<AssetAction kind="check-out" />} />
@@ -48,19 +48,13 @@ function App() {
             <Route path="assets/:id" element={<AssetDetail />} />
             <Route path="assets/:id/edit" element={<EditAsset />} />
 
-            {/* Lists */}
+            <Route path="maintenance/calendar" element={<MaintenanceCalendar />} />
+
             <Route path="lists/:kind" element={<ListsPage />} />
-
-            {/* Reports */}
             <Route path="reports/:kind" element={<ReportsPage />} />
-
-            {/* Tools */}
             <Route path="tools/:kind" element={<ToolsPage />} />
-
-            {/* Advanced */}
             <Route path="advanced/:kind" element={<AdvancedPage />} />
 
-            {/* Future modules */}
             <Route path="pharmacy" element={<ComingSoonModule kind="pharmacy" />} />
             <Route path="pharmacy/*" element={<ComingSoonModule kind="pharmacy" />} />
             <Route path="inventory" element={<ComingSoonModule kind="inventory" />} />
