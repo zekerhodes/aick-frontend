@@ -15,6 +15,9 @@ const MENU = [
     label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard', solo: true,
   },
   {
+    label: 'Maintenance Calendar', icon: CalendarDays, path: '/app/maintenance/calendar', solo: true,
+  },
+  {
     label: 'Assets', icon: Puzzle, key: 'assets',
     children: [
       { label: 'List of Assets', icon: ListChecks, path: '/app/assets' },
