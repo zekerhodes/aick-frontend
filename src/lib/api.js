@@ -20,7 +20,6 @@ api.interceptors.response.use(
   (r) => r,
   (err) => {
     if (err.response?.status === 401) {
-      // token invalid — clear and redirect
       localStorage.removeItem('aick_user');
       if (!window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
@@ -33,9 +32,6 @@ api.interceptors.response.use(
 export const formatKSh = (amount) =>
   new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(amount || 0);
 
-/**
- * Convert any axios/FastAPI error into a user-readable string.
- */
 export const formatApiError = (err, fallback = 'Something went wrong') => {
   const detail = err?.response?.data?.detail;
   if (typeof detail === 'string') return detail;
